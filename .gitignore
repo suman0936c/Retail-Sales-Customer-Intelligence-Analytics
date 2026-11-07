@@ -1,0 +1,24 @@
+# Large generated datasets
+data/processed/*.csv
+powerbi_data/*.csv
+
+# Local databases
+database/*.db
+database/*.duckdb
+database/*.sqlite
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Temporary files
+*.tmp
+*.log
+
+# Environment variables
+.env

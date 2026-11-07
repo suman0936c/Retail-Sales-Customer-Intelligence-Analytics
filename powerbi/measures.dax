@@ -1,0 +1,54 @@
+// Retail Customer Retention Dashboard measures
+// Home table: fact_sales
+
+Total Revenue = SUM('fact_sales'[Revenue])
+Total Orders = CALCULATE(DISTINCTCOUNT('fact_sales'[Invoice]), 'fact_sales'[Invoice] <> BLANK())
+Total Customers = CALCULATE(DISTINCTCOUNT('fact_sales'[CustomerID]), 'fact_sales'[CustomerID] <> BLANK())
+Average Order Value = DIVIDE([Total Revenue], [Total Orders])
+Total Units Sold = SUM('fact_sales'[Quantity])
+Average Revenue per Customer = DIVIDE([Total Revenue], [Total Customers])
+
+Revenue LY =
+VAR _Year = MAX('dim_date'[Year])
+VAR _Month = MAX('dim_date'[MonthNumber])
+RETURN
+    CALCULATE(
+        [Total Revenue],
+        FILTER(ALL('dim_date'), 'dim_date'[Year] = _Year - 1 && 'dim_date'[MonthNumber] = _Month)
+    )
+
+Revenue YoY % = DIVIDE([Total Revenue] - [Revenue LY], [Revenue LY])
+Monthly Revenue = [Total Revenue]
+
+Repeat Customers =
+COUNTROWS(
+    FILTER(
+        VALUES('fact_sales'[CustomerID]),
+        NOT ISBLANK('fact_sales'[CustomerID]) && CALCULATE(DISTINCTCOUNT('fact_sales'[Invoice])) > 1
+    )
+)
+
+Repeat Customer % = DIVIDE([Repeat Customers], [Total Customers])
+Cohort Retention % = DIVIDE(SUM('cohort_retention'[ActiveCustomers]), SUM('cohort_retention'[CohortCustomers]))
+
+Customers by Segment = DISTINCTCOUNT('rfm'[CustomerID])
+Revenue by Segment = SUM('rfm'[Monetary])
+Average Recency = AVERAGE('rfm'[Recency])
+Average Frequency = AVERAGE('rfm'[Frequency])
+Average Monetary Value = AVERAGE('rfm'[Monetary])
+
+Champions Customers = CALCULATE([Customers by Segment], 'rfm'[Segment] = "Champions")
+At Risk Customers = CALCULATE([Customers by Segment], 'rfm'[Segment] = "At Risk")
+Hibernating Customers = CALCULATE([Customers by Segment], 'rfm'[Segment] = "Hibernating")
+Potential Loyalists Customers = CALCULATE([Customers by Segment], 'rfm'[Segment] = "Potential Loyalists")
+
+Month 1 Retention % = CALCULATE([Cohort Retention %], 'cohort_retention'[Period] = 1)
+Month 3 Retention % = CALCULATE([Cohort Retention %], 'cohort_retention'[Period] = 3)
+Month 6 Retention % = CALCULATE([Cohort Retention %], 'cohort_retention'[Period] = 6)
+Month 12 Retention % = CALCULATE([Cohort Retention %], 'cohort_retention'[Period] = 12)
+Average Active Customers = AVERAGE('cohort_retention'[ActiveCustomers])
+
+// Period 0 is intentionally blanked for trend visuals so acquisition-month 100%
+// does not visually dominate later retention periods.
+Cohort Retention % (Periods 1+) =
+IF(MIN('cohort_retention'[Period]) = 0, BLANK(), [Cohort Retention %])
